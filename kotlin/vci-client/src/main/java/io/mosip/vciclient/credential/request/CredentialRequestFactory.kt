@@ -1,11 +1,12 @@
 package io.mosip.vciclient.credential.request
 
 import io.mosip.vciclient.constants.CredentialFormat
-import io.mosip.vciclient.proof.Proof
 import io.mosip.vciclient.credential.request.types.LdpVcCredentialRequest
 import io.mosip.vciclient.credential.request.types.MsoMdocCredentialRequest
-import io.mosip.vciclient.issuerMetadata.IssuerMetadata
+import io.mosip.vciclient.credential.request.types.SdJwtCredentialRequest
 import io.mosip.vciclient.exception.InvalidDataProvidedException
+import io.mosip.vciclient.issuerMetadata.IssuerMetadata
+import io.mosip.vciclient.proof.Proof
 import okhttp3.Request
 
 class CredentialRequestFactory {
@@ -36,6 +37,17 @@ class CredentialRequestFactory {
                         )
                     )
                 }
+
+                CredentialFormat.VC_SD_JWT, CredentialFormat.DC_SD_JWT ->
+                    return validateAndConstructRequest(
+                        SdJwtCredentialRequest(
+                            accessToken,
+                            issuerMetadata,
+                            proof
+                        )
+                    )
+
+                else -> throw InvalidDataProvidedException("Unsupported or missing credential format in configuration")
             }
         }
 

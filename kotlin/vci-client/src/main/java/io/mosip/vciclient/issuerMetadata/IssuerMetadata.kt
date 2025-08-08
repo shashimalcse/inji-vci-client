@@ -12,5 +12,6 @@ data class IssuerMetadata(
     val claims: Map<String, Any>? = null,
     val authorizationServers: List<String>? = null,
     val tokenEndpoint: String? = null,
+    val vct: String? =null,
     val scope: String = "openId"
 )

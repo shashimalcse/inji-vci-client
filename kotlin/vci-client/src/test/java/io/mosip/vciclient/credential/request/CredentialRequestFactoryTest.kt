@@ -36,6 +36,20 @@ class CredentialRequestFactoryTest {
                 ), JWTProof("headerEncoded.payloadEncoded.signature")
             )
         }
+        assertThrows(
+            InvalidDataProvidedException::class.java,
+        ) {
+            CredentialRequestFactory.createCredentialRequest(
+                CredentialFormat.VC_SD_JWT, "access-token",
+                IssuerMetadata(
+                    "/credentialAudience",
+                    "https://credentialendpoint/",
+                    credentialFormat = CredentialFormat.VC_SD_JWT,
+                    claims = mapOf("name" to "Alice") // vct missing
+                ), JWTProof("headerEncoded.payloadEncoded.signature")
+            )
+        }
 
     }
+
 }
