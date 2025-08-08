@@ -30,7 +30,7 @@ class PKCESessionManager {
     private fun generateCodeVerifier(): String {
         val bytes = ByteArray(CODE_VERIFIER_BYTE_SIZE)
         SecureRandom().nextBytes(bytes)
-        return bytes.toByteString().base64Url()
+        return bytes.toByteString().base64Url().trimEnd('=')
     }
 
     private fun generateCodeChallenge(codeVerifier: String): String {
