@@ -26,7 +26,7 @@ on:
 jobs:
   maven-publish:
     if: ${{ inputs.publish == 'Both[Kotlin and JS]' || inputs.publish == 'kotlin'}}
-    uses: mosip/kattu/.github/workflows/maven-publish-android.yml@master
+    uses: mosip/kattu/.github/workflows/maven-publish-android-download.yaml@master
     with:
       SERVICE_LOCATION: 'kotlin'
       ANDROID_SERVICE_LOCATION: 'vci-client'
@@ -35,7 +35,7 @@ jobs:
       PUBLICATION_TYPE: ${{ inputs.publication_type }}
     secrets:
       OSSRH_USER: ${{ secrets.OSSRH_USER }}
-      OSSRH_URL: ${{secrets.OSSRH_SNAPSHOT_URL }}
+      OSSRH_URL: ${{secrets.OSSRH_GRADLE_URL }}
       OSSRH_SECRET: ${{ secrets.OSSRH_SECRET }}
       OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
       GPG_SECRET: ${{ secrets.GPG_SECRET }}
