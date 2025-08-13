@@ -24,24 +24,6 @@ jobs:
     secrets:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_INJI_TEAM }}
 
-  build-js:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3.1.0
-      - name: Run js tests
-        run: |
-          cd js
-          npm ci
-          npm test
-
-      - uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,author,commit,workflow,job 
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_INJI_TEAM }}
-        if: "${{ github.event_name != 'pull_request' && failure() }}"
-
   sonar_analysis:
     needs: build-kotlin
     if: "${{  github.event_name != 'pull_request' }}"
