@@ -1,8 +1,12 @@
 publishing {
     repositories {
         maven {
-            name = "LocalMavenWithChecksums"
-            url = uri(layout.buildDirectory.dir("staging"))
+            url = System.getenv("OSSRH_URL")
+            name = "inji-vci-client"
+            credentials {
+                username = System.getenv("OSSRH_USER")
+                password = System.getenv("OSSRH_SECRET")
+            }
         }
     }
     publications {
