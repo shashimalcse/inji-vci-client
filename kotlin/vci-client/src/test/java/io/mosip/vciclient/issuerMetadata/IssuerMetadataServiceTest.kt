@@ -145,6 +145,75 @@ class IssuerMetadataServiceTest {
         } returns NetworkResponse(body,null)
     }
 
+    @Test
+    fun `should parse vc_sd_jwt metadata successfully`() = runBlocking {
+        mockJsonResponse(VC_SD_JWT_JSON)
+
+        val result = IssuerMetadataService().fetchIssuerMetadataResult(issuerUrl, "SdJwtDegree")
+        val resolved = result.issuerMetadata
+
+        assertEquals(CredentialFormat.VC_SD_JWT, resolved.credentialFormat)
+        assertEquals("urn:example:degree", resolved.vct)
+        assertEquals("openid", resolved.scope)
+        assertTrue(resolved.authorizationServers!!.contains("https://auth"))
+        assertTrue(resolved.claims!!.containsKey("given_name"))
+    }
+
+    @Test
+    fun `should parse dc_sd_jwt metadata successfully`() = runBlocking {
+        mockJsonResponse(DC_SD_JWT_JSON)
+
+        val result = IssuerMetadataService().fetchIssuerMetadataResult(issuerUrl, "SdJwtVcDc")
+        val resolved = result.issuerMetadata
+
+        assertEquals(CredentialFormat.DC_SD_JWT, resolved.credentialFormat)
+        assertEquals("urn:example:driver-card", resolved.vct)
+        assertEquals("dc_scope", resolved.scope)
+    }
+
+    @Test
+    fun `should throw if vct missing for sd_jwt`() = runBlocking {
+        mockJsonResponse(SD_JWT_MISSING_VCT_JSON)
+
+        val ex = assertThrows<IssuerMetadataFetchException> {
+            IssuerMetadataService().fetchIssuerMetadataResult(issuerUrl, "SdJwtNoVct")
+        }
+        assertTrue(ex.message.contains("Missing vct for SD-JWT"))
+    }
+
+    @Test
+    fun `should throw if credential_endpoint missing`() = runBlocking {
+        mockJsonResponse(MISSING_CREDENTIAL_ENDPOINT_JSON)
+
+        val ex = assertThrows<IssuerMetadataFetchException> {
+            IssuerMetadataService().fetchIssuerMetadataResult(issuerUrl, "UniversityDegreeCredential")
+        }
+        assertTrue(ex.message.contains("Missing credential_endpoint"))
+    }
+
+    @Test
+    fun `should throw if credential_issuer missing`() = runBlocking {
+        mockJsonResponse(MISSING_CREDENTIAL_ISSUER_JSON)
+
+        val ex = assertThrows<IssuerMetadataFetchException> {
+            IssuerMetadataService().fetchIssuerMetadataResult(issuerUrl, "UniversityDegreeCredential")
+        }
+        assertTrue(ex.message.contains("Missing credential_issuer"))
+    }
+
+    @Test
+    fun `should throw if network call throws`() = runBlocking {
+        every { NetworkManager.sendRequest(wellKnownUrl, any(), any()) } throws Exception("Invalid request")
+
+        val ex = assertThrows<IssuerMetadataFetchException> {
+            IssuerMetadataService().fetchIssuerMetadataResult(issuerUrl, credentialConfigId)
+        }
+        assertTrue(ex.message.startsWith("Failed to fetch issuerMetadata"))
+        assertTrue(ex.message.contains("Invalid request"))
+    }
+
+
+
     companion object {
         const val LDP_VC_JSON = """
         {
@@ -211,5 +280,80 @@ class IssuerMetadataServiceTest {
           }
         }
         """
+
+        const val VC_SD_JWT_JSON = """
+{
+  "credential_issuer": "https://mock.issuer",
+  "credential_endpoint": "https://mock.issuer/endpoint",
+  "authorization_servers": ["https://auth"],
+  "credential_configurations_supported": {
+    "SdJwtDegree": {
+      "format": "vc+sd-jwt",
+      "vct": "urn:example:degree",
+      "claims": {
+        "given_name": {"mandatory": true}
+      }
+    }
+  }
+}
+"""
+
+        const val DC_SD_JWT_JSON = """
+{
+  "credential_issuer": "https://mock.issuer",
+  "credential_endpoint": "https://mock.issuer/endpoint",
+  "authorization_servers": ["https://auth"],
+  "credential_configurations_supported": {
+    "SdJwtVcDc": {
+      "format": "dc+sd-jwt",
+      "scope": "dc_scope",
+      "vct": "urn:example:driver-card",
+      "claims": {
+        "family_name": {"mandatory": true}
+      }
+    }
+  }
+}
+"""
+
+        const val SD_JWT_MISSING_VCT_JSON = """
+{
+  "credential_issuer": "https://mock.issuer",
+  "credential_endpoint": "https://mock.issuer/endpoint",
+  "credential_configurations_supported": {
+    "SdJwtNoVct": {
+      "format": "vc+sd-jwt",
+      "claims": { "foo": {"mandatory": true} }
+    }
+  }
+}
+"""
+
+        const val MISSING_CREDENTIAL_ENDPOINT_JSON = """
+{
+  "credential_issuer": "https://mock.issuer",
+  "authorization_servers": ["https://auth"],
+  "credential_configurations_supported": {
+    "UniversityDegreeCredential": {
+      "format": "ldp_vc",
+      "credential_definition": { "@context": [], "type": [] }
+    }
+  }
+}
+"""
+
+        const val MISSING_CREDENTIAL_ISSUER_JSON = """
+{
+  "credential_endpoint": "https://mock.issuer/endpoint",
+  "authorization_servers": ["https://auth"],
+  "credential_configurations_supported": {
+    "UniversityDegreeCredential": {
+      "format": "ldp_vc",
+      "credential_definition": { "@context": [], "type": [] }
+    }
+  }
+}
+"""
+
     }
 }
