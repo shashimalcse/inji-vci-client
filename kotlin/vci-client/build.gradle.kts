@@ -90,28 +90,6 @@ tasks {
         )
     }
 
-    register<Jar>("jarRelease") {
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        dependsOn("assembleRelease")
-        from("build/intermediates/javac/release/classes") {
-            include("**/*.class")
-        }
-        from("build/tmp/kotlin-classes/release") {
-            include("**/*.class")
-        }
-        manifest {
-            attributes(
-                mapOf(
-                    "Implementation-Title" to project.name,
-                    "Implementation-Version" to "0.4.0-SNAPSHOT"
-                )
-            )
-        }
-        archiveBaseName.set("${project.name}-release")
-        archiveVersion.set("0.4.0-SNAPSHOT")
-        destinationDirectory.set(layout.buildDirectory.dir("libs"))
-    }
-
     register<Jar>("javadocJar") {
         dependsOn("dokkaJavadoc")
         archiveClassifier.set("javadoc")
@@ -124,7 +102,7 @@ tasks {
     }
 }
 tasks.register("generatePom") {
-    dependsOn("generatePomFileForAarPublication", "generatePomFileForJarReleasePublication")
+    dependsOn("generatePomFileForAarPublication")
 }
 
 
