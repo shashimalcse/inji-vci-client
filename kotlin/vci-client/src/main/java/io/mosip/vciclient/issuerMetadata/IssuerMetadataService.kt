@@ -23,11 +23,7 @@ class IssuerMetadataService {
         credentialIssuer: String,
         credentialConfigurationId: String
     ): IssuerMetadataResult = withContext(Dispatchers.IO) {
-        val rawIssuerMetadata = cachedRawMetadata[credentialIssuer] ?: run {
-            val fetched = fetchAndParseIssuerMetadata(credentialIssuer)
-            cachedRawMetadata[credentialIssuer] = fetched
-            fetched
-        }
+        val rawIssuerMetadata = getOrFetchCachedMetadata(credentialIssuer)
 
         val resolvedIssuerMetadata = resolveMetadata(
             credentialConfigurationId = credentialConfigurationId,
@@ -41,6 +37,27 @@ class IssuerMetadataService {
         )
     }
 
+    fun fetchCredentialConfigurationsSupported(credentialIssuer: String): Map<String, Any> {
+        val rawIssuerMetadata = fetchAndParseIssuerMetadata(credentialIssuer)
+
+        val configurations = rawIssuerMetadata["credential_configurations_supported"] as? Map<*, *>
+            ?: throw IssuerMetadataFetchException("Missing or invalid 'credential_configurations_supported' in issuer metadata.")
+
+        if (configurations.isEmpty()) {
+            throw IssuerMetadataFetchException("'credential_configurations_supported' is empty.")
+        }
+
+        configurations.forEach { (configId, config) ->
+            val configMap = config as? Map<*, *>
+                ?: throw IssuerMetadataFetchException("Invalid configuration format for '$configId'")
+
+            if (configMap["format"] == null) {
+                throw IssuerMetadataFetchException("Missing 'format' in configuration '$configId'")
+            }
+        }
+
+        return configurations as Map<String, Any>
+    }
 
     fun fetchAndParseIssuerMetadata(credentialIssuer: String): Map<String, Any> {
         val wellKnownUrl = "$credentialIssuer$CREDENTIAL_ISSUER_WELL_KNOWN_URI_SUFFIX"
@@ -63,6 +80,12 @@ class IssuerMetadataService {
         } catch (e: Exception) {
             throw IssuerMetadataFetchException("Failed to fetch issuer metadata: ${e.message}")
         }
+    }
+
+    private fun getOrFetchCachedMetadata(credentialIssuer: String) = cachedRawMetadata[credentialIssuer] ?: run {
+        val fetched = fetchAndParseIssuerMetadata(credentialIssuer)
+        cachedRawMetadata[credentialIssuer] = fetched
+        fetched
     }
 
     private fun resolveMetadata(

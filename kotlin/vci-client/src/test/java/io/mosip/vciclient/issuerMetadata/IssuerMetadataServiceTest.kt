@@ -212,6 +212,32 @@ class IssuerMetadataServiceTest {
         assertTrue(ex.message.contains("Invalid request"))
     }
 
+    @Test
+    fun `fetchCredentialConfigurationsSupported should return configuration map on success`() {
+        every {
+            NetworkManager.sendRequest(wellKnownUrl, any(), any())
+        } returns NetworkResponse(MULTIPLE_VALID_CONFIGS_JSON, null)
+
+        val result = IssuerMetadataService().fetchCredentialConfigurationsSupported(issuerUrl)
+
+        assertEquals(2, result.size)
+        assertEquals("ldp_vc", (result["vc1"] as Map<*, *>)["format"])
+        assertEquals("mso_mdoc", (result["vc2"] as Map<*, *>)["format"])
+    }
+
+    @Test
+    fun `fetchCredentialConfigurationsSupported should throw if format is missing in config`() {
+        every {
+            NetworkManager.sendRequest(wellKnownUrl, any(), any())
+        } returns NetworkResponse(CONFIG_WITHOUT_FORMAT_JSON, null)
+
+        val ex = assertThrows<IssuerMetadataFetchException> {
+            IssuerMetadataService().fetchCredentialConfigurationsSupported(issuerUrl)
+        }
+        assertTrue(ex.message.contains("Missing 'format' in configuration"))
+    }
+
+
 
 
     companion object {
@@ -354,6 +380,26 @@ class IssuerMetadataServiceTest {
   }
 }
 """
+
+        const val CONFIG_WITHOUT_FORMAT_JSON = """
+{
+  "credential_configurations_supported": {
+    "vc1": {
+      "scope": "test-scope"
+    }
+  }
+}
+"""
+
+        const val MULTIPLE_VALID_CONFIGS_JSON = """
+{
+  "credential_configurations_supported": {
+    "vc1": { "format": "ldp_vc" },
+    "vc2": { "format": "mso_mdoc", "doctype": "org.iso.18013.5.1.mDL" }
+  }
+}
+"""
+
 
     }
 }

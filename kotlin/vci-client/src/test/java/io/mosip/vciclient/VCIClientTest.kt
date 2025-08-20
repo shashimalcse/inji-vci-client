@@ -23,6 +23,7 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.jupiter.api.assertThrows
@@ -257,6 +258,54 @@ class VCIClientTest {
         )
 
         assertEquals("test", result?.credential?.asString)
+    }
+
+    @Test
+    fun `should return credential configurations when fetchCredentialConfigurationsSupported succeeds`() {
+        val expectedConfigs = mapOf(
+            "vc1" to mapOf("format" to "ldp_vc"),
+            "vc2" to mapOf("format" to "mso_mdoc", "doctype" to "org.iso.18013.5.1.mDL")
+        )
+
+        every {
+            anyConstructed<IssuerMetadataService>().fetchCredentialConfigurationsSupported(any())
+        } returns expectedConfigs
+
+        val client = VCIClient("trace-id")
+        val result = client.getCredentialConfigurationsSupported("https://issuer.com")
+
+        assertEquals(expectedConfigs, result)
+    }
+
+    @Test
+    fun `should throw VCIClientException when IssuerMetadataService throws known exception`() {
+        every {
+            anyConstructed<IssuerMetadataService>().fetchCredentialConfigurationsSupported(any())
+        } throws IssuerMetadataFetchException("known failure")
+
+        val client = VCIClient("trace-id")
+
+        val exception = assertThrows<IssuerMetadataFetchException> {
+            client.getCredentialConfigurationsSupported("https://issuer.com")
+        }
+
+        assertTrue(exception.message.contains("known failure"))
+    }
+
+    @Test
+    fun `should wrap unknown exception into VCIClientException`() {
+        every {
+            anyConstructed<IssuerMetadataService>().fetchCredentialConfigurationsSupported(any())
+        } throws RuntimeException("unexpected error")
+
+        val client = VCIClient("trace-id")
+
+        val exception = assertThrows<VCIClientException> {
+            client.getCredentialConfigurationsSupported("https://issuer.com")
+        }
+
+        assertEquals("VCI-010", exception.code)
+        assertTrue(exception.message!!.contains("unexpected error"))
     }
 
 }

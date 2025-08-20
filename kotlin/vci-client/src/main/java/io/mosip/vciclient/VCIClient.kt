@@ -51,6 +51,23 @@ class VCIClient(traceabilityId: String) {
         }
     }
 
+    fun getCredentialConfigurationsSupported(credentialIssuer: String): Map<String, Any> {
+        try {
+            return IssuerMetadataService().fetchCredentialConfigurationsSupported(credentialIssuer)
+        } catch (exception: VCIClientException) {
+            logger.severe(
+                "Fetching credentialConfigurationsSupported from issuer metadata failed due to ${exception.message}"
+            )
+            throw exception
+        } catch (e: Exception) {
+            logger.severe(
+                "Fetching credentialConfigurationsSupported from issuer metadata failed"
+            )
+            throw VCIClientException("VCI-010", "Unknown Exception - ${e.message}")
+        }
+    }
+
+
 
     suspend fun requestCredentialByCredentialOffer(
         credentialOffer: String,
@@ -74,6 +91,7 @@ class VCIClient(traceabilityId: String) {
                 downloadTimeoutInMillis
             )
         } catch (e: VCIClientException) {
+            logger.severe("Downloading credential failed due to ${e.message}")
             throw e
         } catch (e: Exception) {
             logger.severe("Downloading credential failed due to ${e.message}")
