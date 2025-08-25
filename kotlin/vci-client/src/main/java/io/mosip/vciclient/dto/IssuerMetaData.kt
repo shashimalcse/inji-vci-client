@@ -7,6 +7,7 @@ import io.mosip.vciclient.constants.CredentialFormat
     replaceWith = ReplaceWith("IssuerMetadata"),
     level = DeprecationLevel.WARNING
 )
+@Suppress("ArrayInDataClass")
 data class IssuerMetaData(
     val credentialAudience: String,
     val credentialEndpoint: String,

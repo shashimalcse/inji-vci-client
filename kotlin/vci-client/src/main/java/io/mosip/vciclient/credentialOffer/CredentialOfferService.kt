@@ -24,12 +24,14 @@ internal class CredentialOfferService {
 
             return when {
                 queryParams.containsKey("credential_offer") -> {
-                    val offer = queryParams["credential_offer"]!!
+                    val offer = queryParams["credential_offer"]
+                        ?: throw CredentialOfferFetchFailedException("'credential_offer' in query parameters has empty value")
                     handleByValueOffer(offer)
                 }
 
                 queryParams.containsKey("credential_offer_uri") -> {
-                    val uriOffer = queryParams["credential_offer_uri"]!!
+                    val uriOffer = queryParams["credential_offer_uri"]
+                        ?: throw CredentialOfferFetchFailedException("'credential_offer_uri' in query parameters has empty value")
                     handleByReferenceOffer(uriOffer)
                 }
 
