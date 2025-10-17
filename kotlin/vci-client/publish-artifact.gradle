@@ -98,7 +98,7 @@ publishing {
             }
             groupId = "io.mosip"
             artifactId = "inji-vci-client-aar"
-            version = "0.5.0-SNAPSHOT"
+            version = "0.6.0-SNAPSHOT"
             archivesBaseName = "${artifactId}-${version}"
             if (project.gradle.startParameter.taskNames.any { it.contains('assembleRelease') }) {
                 artifacts {
