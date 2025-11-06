@@ -155,11 +155,7 @@ class VCIClientWrapper {
             "${URLEncoder.encode(it.first, "UTF-8")}=${URLEncoder.encode(it.second, "UTF-8")}"
         }
 
-        val url = if (proxy) {
-            "https://api.qa-inji1.mosip.net/v1/mimoto/get-token/Mock"
-        } else {
-            req.tokenEndpoint
-        }
+        val url = req.tokenEndpoint
 
         val request = Request.Builder()
             .url(url)

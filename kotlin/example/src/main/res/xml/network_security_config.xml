@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config>
+        <domain includeSubdomains="true">wso2-is-test.com</domain>
+        <trust-anchors>
+            <certificates src="@raw/wso2_is_cert"/>
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

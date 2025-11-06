@@ -3,6 +3,7 @@ package io.mosip.vciclient.issuerMetadata
 import io.mosip.vciclient.constants.CredentialFormat
 
 data class IssuerMetadata(
+    val credentialId: String? = null,
     val credentialIssuer: String,
     val credentialEndpoint: String,
     val credentialType: List<String>? = null,
@@ -10,6 +11,7 @@ data class IssuerMetadata(
     val credentialFormat: CredentialFormat,
     val doctype: String? = null,
     val claims: Map<String, Any>? = null,
+    val credentialMetadata: Map<String, Any>? = null,
     val authorizationServers: List<String>? = null,
     val tokenEndpoint: String? = null,
     val vct: String? =null,

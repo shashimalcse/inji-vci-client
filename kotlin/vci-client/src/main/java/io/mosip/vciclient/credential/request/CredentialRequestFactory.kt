@@ -1,6 +1,7 @@
 package io.mosip.vciclient.credential.request
 
 import io.mosip.vciclient.constants.CredentialFormat
+import io.mosip.vciclient.credential.request.types.JwtVcJsonCredentialRequest
 import io.mosip.vciclient.credential.request.types.LdpVcCredentialRequest
 import io.mosip.vciclient.credential.request.types.MsoMdocCredentialRequest
 import io.mosip.vciclient.credential.request.types.SdJwtCredentialRequest
@@ -41,6 +42,15 @@ class CredentialRequestFactory {
                 CredentialFormat.VC_SD_JWT, CredentialFormat.DC_SD_JWT ->
                     return validateAndConstructRequest(
                         SdJwtCredentialRequest(
+                            accessToken,
+                            issuerMetadata,
+                            proof
+                        )
+                    )
+
+                CredentialFormat.JWT_VC_JSON ->
+                    return validateAndConstructRequest(
+                        JwtVcJsonCredentialRequest(
                             accessToken,
                             issuerMetadata,
                             proof

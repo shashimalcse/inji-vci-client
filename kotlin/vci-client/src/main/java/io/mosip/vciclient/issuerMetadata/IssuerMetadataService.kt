@@ -12,7 +12,7 @@ private const val CREDENTIAL_ISSUER_WELL_KNOWN_URI_SUFFIX = "/.well-known/openid
 
 @Suppress("UNCHECKED_CAST")
 class IssuerMetadataService {
-    private val timeoutMillis: Long = 10000
+    private val timeoutMillis: Long = 50000
     private val cachedRawMetadata: MutableMap<String, Map<String, Any>> = mutableMapOf()
 
     /**
@@ -153,6 +153,24 @@ class IssuerMetadataService {
                     credentialFormat = resolvedFormat,
                     vct = vct,
                     claims = claims,
+                    scope = scope,
+                    authorizationServers = rawIssuerMetadata["authorization_servers"] as? List<String>
+                )
+            }
+
+            CredentialFormat.JWT_VC_JSON.value -> {
+
+                val id = credentialType["id"] as? String
+                val metadata = credentialType["credential_metadata"] as? Map<String, Any>
+                val resolvedFormat = CredentialFormat.values().firstOrNull { it.value == format }
+                    ?: throw IssuerMetadataFetchException("Unrecognized credential format: $format")
+
+                IssuerMetadata(
+                    credentialId = id,
+                    credentialIssuer = credentialIssuer,
+                    credentialEndpoint = credentialEndpoint,
+                    credentialFormat = resolvedFormat,
+                    credentialMetadata = metadata,
                     scope = scope,
                     authorizationServers = rawIssuerMetadata["authorization_servers"] as? List<String>
                 )

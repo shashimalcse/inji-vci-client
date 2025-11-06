@@ -53,13 +53,7 @@ internal class AuthorizationCodeFlowService(
                 getTokenResponse = getTokenResponse
             )
 
-            val jwt = getProofJwt(
-                issuerMetadata.credentialIssuer,
-                token.cNonce,
-                jwtProofAlgorithmsSupported
-            )
-
-            val proof = JWTProof(jwt)
+            val proof = JWTProof()
 
             return credentialExecutor.requestCredential(
                 issuerMetadata = issuerMetadata,
