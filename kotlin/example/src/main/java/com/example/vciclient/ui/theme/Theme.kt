@@ -10,31 +10,48 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = IndigoSoft,
+    onPrimary = Color.White,
+    primaryContainer = IndigoDark,
+    onPrimaryContainer = MistSoft,
+    secondary = TealAccent,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFF0F766E),
+    onSecondaryContainer = Color(0xFFA7F3D0),
+    tertiary = AmberAccent,
+    onTertiary = Color(0xFF281800),
+    background = Midnight,
+    onBackground = MistSoft,
+    surface = Slate,
+    onSurface = MistSoft,
+    surfaceVariant = Color(0xFF344055),
+    onSurfaceVariant = Color(0xFFD6E4FF)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = IndigoPrimary,
     onPrimary = Color.White,
+    primaryContainer = Color(0xFFEEF2FF),
+    onPrimaryContainer = IndigoDark,
+    secondary = TealAccent,
     onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    secondaryContainer = TealSoft,
+    onSecondaryContainer = Color(0xFF064E3B),
+    tertiary = AmberAccent,
+    onTertiary = Color(0xFF1E1300),
+    background = MistSoft,
+    onBackground = SlateText,
+    surface = Color.White,
+    onSurface = SlateText,
+    surfaceVariant = Mist,
+    onSurfaceVariant = Color(0xFF4B5563)
 )
 
 @Composable
@@ -58,7 +75,7 @@ fun VCIClientTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
 

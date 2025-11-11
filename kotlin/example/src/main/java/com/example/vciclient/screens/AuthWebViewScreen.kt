@@ -12,7 +12,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 fun AuthWebViewScreen(
     authUrl: String,
     onAuthCodeReceived: (String) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var webView by remember { mutableStateOf<WebView?>(null) }
 
@@ -64,7 +65,7 @@ fun AuthWebViewScreen(
                 loadUrl(authUrl)
             }
         },
-        update = { webView = it },
-        modifier = Modifier
+        modifier = modifier,
+        update = { webView = it }
     )
 }

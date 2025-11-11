@@ -19,6 +19,9 @@ import io.mosip.vciclient.VCIClient
 import io.mosip.vciclient.authorizationCodeFlow.clientMetadata.ClientMetadata
 import io.mosip.vciclient.token.TokenRequest
 import io.mosip.vciclient.token.TokenResponse
+import io.mosip.vciclient.credential.response.CredentialResponse
+import com.example.vciclient.model.CredentialOfferData
+import com.example.vciclient.model.CredentialTypeInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -41,13 +44,137 @@ class VCIClientWrapper {
             .generate()
     }
 
-    suspend fun startCredentialOfferFlow(scanned: String, onResult: (String) -> Unit) {
+    // Fetch credential offer metadata without starting the flow
+    suspend fun fetchCredentialOfferData(scanned: String): CredentialOfferData? {
+        return try {
+            // Parse the credential offer URL to get issuer
+            val credentialIssuerUrl = extractIssuerFromOffer(scanned)
+            
+            // Fetch issuer metadata
+            val issuerMetadata = client.getIssuerMetadata(credentialIssuerUrl)
+            val credentialConfigsSupported = client.getCredentialConfigurationsSupported(credentialIssuerUrl)
+            
+            // Extract display name from metadata
+            val displayList = issuerMetadata["display"] as? List<*>
+            val issuerName = if (displayList != null && displayList.isNotEmpty()) {
+                val firstDisplay = displayList[0] as? Map<*, *>
+                (firstDisplay?.get("name") as? String) ?: extractDomainName(credentialIssuerUrl)
+            } else {
+                extractDomainName(credentialIssuerUrl)
+            }
+            
+            // Parse credential types
+            val credentialTypes = mutableMapOf<String, CredentialTypeInfo>()
+            credentialConfigsSupported.forEach { (configId, config) ->
+                if (config is Map<*, *>) {
+                    val format = config["format"] as? String ?: "unknown"
+                    val display = config["display"] as? List<*>
+                    val displayName = if (display != null && display.isNotEmpty()) {
+                        val firstDisplay = display[0] as? Map<*, *>
+                        (firstDisplay?.get("name") as? String) ?: configId
+                    } else {
+                        configId
+                    }
+                    
+                    // Extract claims from credential definition or metadata
+                    val claims = mutableListOf<String>()
+                    when (format) {
+                        "ldp_vc", "jwt_vc_json" -> {
+                            // First try credential_metadata.claims (newer format)
+                            val credentialMetadata = config["credential_metadata"] as? Map<*, *>
+                            val metadataClaims = credentialMetadata?.get("claims") as? List<*>
+                            if (metadataClaims != null) {
+                                metadataClaims.forEach { claim ->
+                                    if (claim is Map<*, *>) {
+                                        val path = claim["path"] as? List<*>
+                                        path?.forEach { pathElement ->
+                                            claims.add(pathElement.toString())
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Fall back to credential_definition.credentialSubject (older format)
+                                val credentialDef = config["credential_definition"] as? Map<*, *>
+                                val credentialSubject = credentialDef?.get("credentialSubject") as? Map<*, *>
+                                credentialSubject?.keys?.forEach { key ->
+                                    claims.add(key.toString())
+                                }
+                            }
+                        }
+                        "mso_mdoc" -> {
+                            val claimsMap = config["claims"] as? Map<*, *>
+                            claimsMap?.values?.forEach { namespaceValue ->
+                                if (namespaceValue is Map<*, *>) {
+                                    namespaceValue.keys.forEach { key ->
+                                        claims.add(key.toString())
+                                    }
+                                }
+                            }
+                        }
+                        "vc+sd-jwt", "dc+sd-jwt" -> {
+                            val claimsMap = config["claims"] as? Map<*, *>
+                            claimsMap?.keys?.forEach { key ->
+                                claims.add(key.toString())
+                            }
+                        }
+                    }
+                    
+                    credentialTypes[configId] = CredentialTypeInfo(
+                        format = format,
+                        displayName = displayName,
+                        claims = claims
+                    )
+                }
+            }
+            
+            CredentialOfferData(
+                credentialIssuer = credentialIssuerUrl,
+                credentialConfigurationIds = credentialTypes.keys.toList(),
+                issuerName = issuerName,
+                credentialTypes = credentialTypes,
+                rawOffer = scanned
+            )
+        } catch (e: Exception) {
+            Log.e("VCIClientWrapper", "Error fetching offer data", e)
+            null
+        }
+    }
+    
+    private fun extractIssuerFromOffer(offer: String): String {
+        // If it's a credential_offer_uri, fetch it first
+        return if (offer.contains("credential_offer_uri=")) {
+            val uri = offer.substringAfter("credential_offer_uri=")
+            // Extract base URL from the URI
+            val parts = uri.split("/")
+            "${parts[0]}//${parts[2]}/${parts[3]}"
+        } else {
+            // Try to parse embedded offer
+            credentialIssuer // Fallback to configured issuer
+        }
+    }
+    
+    private fun extractDomainName(url: String): String {
+        return try {
+            url.substringAfter("://").substringBefore("/").split(".").takeLast(2).joinToString(".").replaceFirstChar { it.uppercase() }
+        } catch (e: Exception) {
+            "Credential Issuer"
+        }
+    }
+
+    suspend fun startCredentialOfferFlow(scanned: String, onResult: (CredentialResponse?) -> Unit) {
         try {
             val response = client.requestCredentialByCredentialOffer(
                 credentialOffer = scanned,
-                clientMetadata = ClientMetadata("wallet", "https://sampleApp"),
+                clientMetadata = ClientMetadata(clientId, redirectUri),
                 getTxCode = null,
-                authorizeUser = { _ -> "dummy-auth-code" },
+                authorizeUser = { authUrl ->
+                    suspendCancellableCoroutine { cont ->
+                        NotificationCenter.post("ShowAuthWebView", authUrl)
+                        NotificationCenter.once("AuthCodeReceived") { code ->
+                            cont.resume(code)
+                        }
+                    }
+                },
                 getTokenResponse = { exchangeToken(it, proxy = false) },
                 getProofJwt = { credentialIssuer, cNonce, _ ->
                     signProofJWT(
@@ -58,10 +185,10 @@ class VCIClientWrapper {
                 }
             )
 
-            val result = response?.toString() ?: "❌ No credential received"
-            onResult("✅ Credential Issued:\n$result")
+            onResult(response)
         } catch (e: Exception) {
-            onResult("❌ Error: ${e.localizedMessage}")
+            Log.e("VCIClientWrapper", "Error in credential offer flow", e)
+            onResult(null)
         }
     }
 
