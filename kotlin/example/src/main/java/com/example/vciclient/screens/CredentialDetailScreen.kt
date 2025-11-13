@@ -72,11 +72,6 @@ fun CredentialDetailScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Credential Details Section
-            CredentialDetailsSection(parsedData = parsedData)
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -109,20 +104,6 @@ private fun CredentialHeaderCard(credential: StoredCredential) {
             fontSize = 12.sp,
             modifier = Modifier.align(Alignment.BottomStart)
         )
-
-        Row(
-            modifier = Modifier.align(Alignment.BottomEnd),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(width = 32.dp, height = 12.dp)
-                    .background(
-                        color = Color(0xFF00C853),
-                        shape = RoundedCornerShape(6.dp)
-                    )
-            )
-        }
     }
 }
 
@@ -144,84 +125,32 @@ private fun CredentialInfoSection(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Active from
+            // Active from (using iat)
+            val iatTimestamp = parsedData["iat"] as? Long
             InfoRow(
                 label = "Active from",
-                value = formatTimestamp(credential.timestamp)
+                value = if (iatTimestamp != null) formatTimestamp(iatTimestamp * 1000) else "N/A"
             )
 
             Divider()
 
-            // Expiry
-            val expiryDate = parsedData["exp"] as? Long
+            // Expiry (using exp)
+            val expTimestamp = parsedData["exp"] as? Long
             InfoRow(
                 label = "Expiry",
-                value = if (expiryDate != null) formatTimestamp(expiryDate * 1000) else "N/A"
+                value = if (expTimestamp != null) formatTimestamp(expTimestamp * 1000) else "N/A"
             )
 
             Divider()
 
-            // Features
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Features",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            // Claims from vc.credentialSubject
+            val credentialSubjectClaims = parsedData.filterKeys { it.startsWith("vc.credentialSubject.") && it != "vc.credentialSubject.id" }
+            credentialSubjectClaims.forEach { (key, value) ->
+                InfoRow(
+                    label = formatLabel(key),
+                    value = value.toString()
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(
-                        imageVector = Icons.Outlined.Notifications,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Icon(
-                        imageVector = Icons.Outlined.Public,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Icon(
-                        imageVector = Icons.Outlined.LocationOff,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Icon(
-                        imageVector = Icons.Outlined.VisibilityOff,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CredentialDetailsSection(parsedData: Map<String, Any>) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            parsedData.forEach { (key, value) ->
-                if (key != "exp" && key != "iat" && key != "nbf") {
-                    InfoRow(
-                        label = formatLabel(key),
-                        value = value.toString()
-                    )
-                    Divider()
-                }
+                Divider()
             }
         }
     }
@@ -278,7 +207,14 @@ private fun parseJsonObject(jsonObject: JsonObject): Map<String, Any> {
     val map = mutableMapOf<String, Any>()
     jsonObject.entrySet().forEach { (key, value) ->
         when {
-            value.isJsonPrimitive -> map[key] = value.asString
+            value.isJsonPrimitive -> {
+                val primitive = value.asJsonPrimitive
+                map[key] = when {
+                    primitive.isNumber -> primitive.asLong
+                    primitive.isBoolean -> primitive.asBoolean
+                    else -> primitive.asString
+                }
+            }
             value.isJsonObject -> {
                 // Flatten nested objects
                 val nested = parseJsonObject(value.asJsonObject)
